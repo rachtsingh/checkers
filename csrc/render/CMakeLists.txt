@@ -4,20 +4,29 @@ project(Render)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Find PyTorch
+find_package(Torch REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+
 # Find Raylib
-find_path(RAYLIB_INCLUDE_DIR raylib.h HINTS ../../external/raylib/src)
-find_library(RAYLIB_LIBRARY raylib HINTS ../../external/raylib/src)
+add_subdirectory(../../external/raylib raylib-build)
 
-if (NOT RAYLIB_INCLUDE_DIR OR NOT RAYLIB_LIBRARY)
-    message(FATAL_ERROR "Raylib not found. Run 'just setup' to clone Raylib.")
-endif()
-
-add_executable(render main.cpp)
+add_executable(render main.cpp ../shared/chinese_checkers.cpp)
 
 target_include_directories(render PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../shared
-    ${RAYLIB_INCLUDE_DIR}
+    ../../external/raylib/src/  # Include Raylib headers
+    ${TORCH_INCLUDE_DIRS}
 )
 
-target_link_libraries(render ${RAYLIB_LIBRARY})
+target_link_libraries(render ${TORCH_LIBRARIES} raylib)
+
+if(APPLE)
+    target_link_libraries(render
+        "-framework OpenGL"
+        "-framework Cocoa"
+        "-framework IOKit"
+        "-framework CoreAudio"
+    )
+endif()

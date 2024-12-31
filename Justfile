@@ -33,11 +33,19 @@ install:
     @. .venv/bin/activate && uv pip install .[gpu] --no-build-isolation
 
 build:
-    @echo "Building project..."
+    @echo "Building CLI tools (generate and render)..."
     @if [ ! -d "build" ]; then \
         mkdir build; \
     fi
-    @cd build && cmake .. -GNinja && cmake --build .
+    @if [ ! -d "build_render" ]; then \
+        mkdir build_render; \
+    fi
+    @cd build &&\
+        export CMAKE_PREFIX_PATH=$(python -c "import torch.utils; print(f'{torch.utils.cmake_prefix_path}/Torch')") &&\
+        cmake -GNinja ../csrc/generate && cmake --build .
+    @cd build_render &&\
+        export CMAKE_PREFIX_PATH=$(python -c "import torch.utils; print(f'{torch.utils.cmake_prefix_path}/Torch')") &&\
+        cmake -DCMAKE_BUILD_TYPE=Release -GNinja ../csrc/render && cmake --build .
 
 generate: build 
     @echo "Running 'generate'..."
@@ -50,6 +58,7 @@ render: build
 clean:
     @echo "Cleaning project..."
     @rm -rf build
+    @rm -rf build_render
     @rm -rf logs
     @. .venv/bin/activate && uv pip uninstall chinese_checkers_ext
     @rm -rf *.egg-info

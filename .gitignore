@@ -5,4 +5,7 @@ build/
 profile.json
 **/*.egg-info/
 **/__pycache__/
+externalc_cpp_properties.json
 external
+build_render
+c_cpp_properties.json
