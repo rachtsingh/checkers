@@ -1,0 +1,8 @@
+.vscode
+build/
+*.log
+*.state
+profile.json
+**/*.egg-info/
+**/__pycache__/
+external

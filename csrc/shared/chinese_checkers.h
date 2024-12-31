@@ -1,7 +1,23 @@
-#ifndef CHINESE_CHECKERS_H
-#define CHINESE_CHECKERS_H
+#pragma once
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <torch/torch.h>
 
-// ... Your Chinese Checkers logic declarations ...
-void initialize_board();
+#include "board.h"
+#include "constants.h"
 
-#endif
+// Initialize the 17×13 portion of a flat buffer
+void initialize_state(GameState_t game_state);
+torch::Tensor initialize_state_batched(int n_batch);
+
+// this is not batched
+void set_action_mask(GameState_t game_state, int* dest);
+torch::Tensor get_action_mask_batched(int* game_state_batch, int n_batch);
+void free_underlying_buffer(torch::Tensor tensor);
+
+void update_state(GameState_t game_state, size_t move);
+void update_state_batched(int* game_state_batch, int* moves_batch, int n_batch);

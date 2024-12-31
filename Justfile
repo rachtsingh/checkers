@@ -1,7 +1,7 @@
 setup:
     @echo "Setting up project..."
     @echo "Cloning Raylib..."
-    # @git clone --depth 1 https://github.com/raysan5/raylib.git external/raylib
+    @git clone --depth 1 https://github.com/raysan5/raylib.git external/raylib
     @cd external/raylib && git fetch --tags --prune
     @cd external/raylib && git checkout tags/5.5 # v5.5
 
@@ -39,7 +39,7 @@ build:
     fi
     @cd build && cmake .. -GNinja && cmake --build .
 
-generate: build
+generate: build 
     @echo "Running 'generate'..."
     @./build/generate/generate
 
@@ -50,7 +50,8 @@ render: build
 clean:
     @echo "Cleaning project..."
     @rm -rf build
-    @rm -rf external
     @rm -rf logs
     @. .venv/bin/activate && uv pip uninstall chinese_checkers_ext
     @rm -rf *.egg-info
+    @rm -rf **/*.egg-info
+    @uv cache clean chinese_checkers_ext
