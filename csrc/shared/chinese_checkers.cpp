@@ -39,10 +39,11 @@ void initialize_state(GameState_t game_state) {
 }
 
 torch::Tensor initialize_state_batched(int n_batch) {
-    auto tensor_data = new int[n_batch * TOTAL_STATE];
-    // auto tensor = torch::zeros({n_batch, (long long)TOTAL_STATE},
-    // torch::dtype(torch::kInt)); auto tensor_data = tensor.data_ptr<int>();
-    torch::Tensor tensor = torch::from_blob(tensor_data, {n_batch, (long long)TOTAL_STATE}, tensor_options);
+    auto tensor = torch::zeros({n_batch, (long long)TOTAL_STATE}, tensor_options);
+    auto tensor_data = tensor.data_ptr<int>();
+    // if the C++ code allocates:
+    // auto tensor_data = new int[n_batch * TOTAL_STATE];
+    // torch::Tensor tensor = torch::from_blob(tensor_data, {n_batch, (long long)TOTAL_STATE}, tensor_options);
     for (int i = 0; i < n_batch; i++) {
         auto grid_state = GameState_t(tensor_data + i * TOTAL_STATE);
         initialize_state(grid_state);
@@ -108,23 +109,22 @@ void set_action_mask(GameState_t game_state, int* dest) {
     }
 }
 
-torch::Tensor get_action_mask_batched(int* game_state_batch, int n_batch) {
-    // the returned Tensor will always be contiguous, and the (Python) user SHOULD
-    // NOT MODIFY IT use free_underlying_buffer to free the memory
-    auto tensor_data = new int[n_batch * N_MOVES]; // implicitly relying on this to set 0s
-    // set it to 0s
-    std::fill(tensor_data, tensor_data + n_batch * N_MOVES, 0);
-    torch::Tensor tensor = torch::from_blob(tensor_data, {n_batch, (long long)N_MOVES}, tensor_options);
+torch::Tensor get_action_mask_batched(torch::Tensor& game_state_batch, int n_batch) {
+    auto tensor = torch::zeros({n_batch, (long long)TOTAL_STATE}, tensor_options);
+    auto tensor_data = tensor.data_ptr<int>();
+
+    // if the C++ code allocates:
+    // auto tensor_data = new int[n_batch * N_MOVES]; // implicitly relying on this to set 0s
+    // std::fill(tensor_data, tensor_data + n_batch * N_MOVES, 0);
+    // torch::Tensor tensor = torch::from_blob(tensor_data, {n_batch, (long long)N_MOVES}, tensor_options);
+    game_state_batch = game_state_batch.contiguous();
+    auto game_state_batch_ptr = game_state_batch.data_ptr<int>();
     for (int i = 0; i < n_batch; i++) {
-        auto grid_state = GameState_t(game_state_batch + i * TOTAL_STATE);
+        auto grid_state = GameState_t(game_state_batch_ptr + i * TOTAL_STATE);
         auto dest = tensor_data + i * N_MOVES;
         set_action_mask(grid_state, dest);
     }
     return tensor;
-}
-
-void free_underlying_buffer(torch::Tensor tensor) {
-    delete[] tensor.data_ptr<int>();
 }
 
 void update_state(GameState_t game_state, size_t move) {
@@ -161,10 +161,14 @@ void update_state(GameState_t game_state, size_t move) {
     }
 }
 
-void update_state_batched(int* game_state_batch, int* action_batch, int n_batch) {
+void update_state_batched(torch::Tensor& game_state_batch, torch::Tensor& action_batch, int n_batch) {
+    game_state_batch = game_state_batch.contiguous();
+    action_batch = action_batch.contiguous();
+    auto game_state_batch_ptr = game_state_batch.data_ptr<int>();
+    auto action_batch_ptr = action_batch.data_ptr<int>();
     for (int i = 0; i < n_batch; i++) {
-        auto grid_state = GameState_t(game_state_batch + i * TOTAL_STATE);
-        auto move = action_batch[i];
+        auto grid_state = GameState_t(game_state_batch_ptr + i * TOTAL_STATE);
+        auto move = action_batch_ptr[i];
         update_state(grid_state, move);
     }
 }

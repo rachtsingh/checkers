@@ -95,9 +95,8 @@ int main(int argc, char* argv[]) {
 
     while (*game_state.turn_count < n) {
         // get valid moves
-        auto action_mask = get_action_mask_batched(states.data_ptr<int>(), 1);
+        auto action_mask = get_action_mask_batched(states, 1);
         auto chosen_move = sample_allowed_action(action_mask[0]);
-        free_underlying_buffer(action_mask);
 
         // write move to log
         int current_player = *game_state.current_player;
