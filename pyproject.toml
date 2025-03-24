@@ -1,0 +1,36 @@
+[build-system]
+requires = [
+  "setuptools",
+  "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chinese_checkers_ext"
+version = "0.1.0"
+description = "Chinese Checkers PyTorch extension"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+  "torch>=2.1.0",
+  "setuptools>=61.0.0",
+  "numpy<2.0.0",
+  "pybind11>=2.12",
+  "click",
+  "rich",
+  "parse",
+  "ipdb",
+  "pygame"
+]
+
+# for now just use CPU version
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu" },
+]
+

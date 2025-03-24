@@ -1,11 +1,11 @@
 #include "chinese_checkers.h"
 #include "board.h"
 #include "constants.h"
-#include <torch/torch.h>
 #include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <iostream>
+#include <torch/torch.h>
 
 auto static const tensor_options = torch::dtype(torch::kInt32).requires_grad(false);
 
@@ -46,23 +46,58 @@ torch::Tensor initialize_state_batched(int n_batch) {
 void set_action_mask(GameState_t game_state, int* dest) {
     auto player = *game_state.current_player;
     auto last_skipped_piece = *game_state.last_skipped_piece;
-    bool skip_move = (last_skipped_piece != -1);
+    auto skip_move = last_skipped_piece != -1;
     auto last_direction = *game_state.last_direction;
 
     for (size_t i = 0; i < N_PIECES_PER_PLAYER; i++) {
-        if (skip_move && last_skipped_piece != i)
+        if (last_skipped_piece != -1 && last_skipped_piece != i) {
+            // we can only move the last skipped piece if a skip has already happened
             continue;
+        }
+
         auto piece = (player == 1) ? game_state.player_1_pieces[i] : game_state.player_2_pieces[i];
-        int neighbors[N_DIRECTIONS * 2]; // dummy buffer if needed
-        // Assume get_neighbors fills in neighbors (pointer logic unchanged)
+        neighbors_t neighbors;
+        auto count = get_neighbors(piece, neighbors, true);
+        assert(count == N_DIRECTIONS);
         for (int j = 0; j < N_DIRECTIONS; j++) {
-            int dest_idx = i * N_DIRECTIONS + j;
-            // (Placeholder: original logic from your file)
-            dest[dest_idx] = 1; // simplified for brevity
+            auto dest_idx = i * N_DIRECTIONS + j;
+            auto one_step = neighbors[j];
+            if (!is_valid_cell(one_step)) {
+                continue;
+            }
+            // if the next cell is unoccupied, the only move we can make is 1 step
+            // if we haven't already started skipping
+            if (!game_state.occupied(one_step)) {
+                if (!skip_move) {
+                    dest[dest_idx] = 1;
+                }
+            } else {
+                // now we know that the one step move in that direction is occupied
+                // so we are ONLY looking to see if it's possible to make a two step
+                // move (i.e. if it's not occupied)
+                auto offset = double_step_neighbors[j];
+                point_t two_step = {piece.first + offset[0], piece.second + offset[1]};
+                if (!is_valid_cell(two_step)) {
+                    continue;
+                }
+                // we have already checked at this point that one_step is occupied
+                if (!game_state.occupied(two_step)) {
+                    // we mask out the previous step if we've already started skipping
+                    // so we can't undo a move
+                    if (skip_move && (last_skipped_piece == i) &&
+                        (((last_direction - j + N_DIRECTIONS) % N_DIRECTIONS) == 3)) {
+                        continue;
+                    }
+                    dest[dest_idx] = 1;
+                }
+            }
         }
     }
-    if (skip_move)
+
+    // finally, if skip_move is set, we set the last action mask to 1
+    if (skip_move) {
         dest[N_MOVES - 1] = 1;
+    }
 }
 
 torch::Tensor get_action_mask_batched(torch::Tensor& game_state_batch, int n_batch) {
@@ -81,20 +116,32 @@ torch::Tensor get_action_mask_batched(torch::Tensor& game_state_batch, int n_bat
 void update_state(GameState_t game_state, size_t move) {
     auto current_player = *game_state.current_player;
     if (move == N_MOVES - 1) {
+        // end skipping, so we reset and switch players
         game_state.next_turn();
         return;
     }
+
     size_t piece_num = move / 6;
     size_t direction = move % 6;
+
+    // now we need to figure out if we're moving 1 or 2 steps (we assume the move
+    // is valid)
     auto piece = (current_player == 1) ? game_state.player_1_pieces[piece_num] : game_state.player_2_pieces[piece_num];
-    // Calculate one_step and two_step positions (pointer logic unchanged)
-    // Here we assume one_step is computed and checked
-    bool one_step_available = true; // placeholder
-    if (one_step_available) {
-        game_state.update_state(piece, piece, current_player, piece_num);
+    neighbors_t neighbors;
+    auto count = get_neighbors(piece, neighbors, true);
+    auto one_step = neighbors[direction];
+    auto offset = double_step_neighbors[direction];
+    auto two_step = point_t{piece.first + offset[0], piece.second + offset[1]};
+    if (!game_state.occupied(one_step)) {
+        game_state.update_state(piece, one_step, current_player, piece_num);
+        // make sure last_skipped_piece is -1 (should be masked off)
+        assert(*game_state.last_skipped_piece == -1);
         game_state.next_turn();
     } else {
-        game_state.update_state(piece, piece, current_player, piece_num);
+        // we know that two_step is empty
+        assert(!game_state.occupied(two_step));
+        game_state.update_state(piece, two_step, current_player, piece_num);
+        // now we set the "last_skipped_piece" flag and DONT switch players
         *game_state.last_skipped_piece = piece_num;
         *game_state.last_direction = direction;
     }

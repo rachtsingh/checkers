@@ -45,11 +45,6 @@ static bool parse_move_line(const std::string& line, parsed_move_t& out_move) {
     return true;
 }
 
-static int to_update_state_move_index(const parsed_move_t& move) {
-    if (move.end_turn)
-        return N_MOVES - 1;
-    return move.piece_index * N_DIRECTIONS + move.direction;
-}
 
 static Vector2 get_center(int row, int col) {
     float offset_x = (row % 2 == 1) ? (sqrtf(3.0f) * HEX_RADIUS * 0.5f) : 0.0f;
@@ -73,6 +68,13 @@ static void render_grid(int* grid) {
     }
 }
 
+
+static int to_update_state_move_index(const parsed_move_t& move) {
+    if (move.end_turn)
+        return N_MOVES - 1;
+    return move.piece_index * N_DIRECTIONS + move.direction;
+}
+
 int main() {
     std::vector<parsed_move_t> move_list;
     std::string line;
@@ -82,14 +84,14 @@ int main() {
         if (parse_move_line(line, parsed))
             move_list.push_back(parsed);
         else
-            std::cerr << "Ignoring invalid line: " << line << "\n";
+            std::cerr << "ignoring invalid line: " << line << "\n";
     }
 
     auto states_tensor = initialize_state_batched(1);
     GameState_t game_state(states_tensor[0].data_ptr<int>());
 
     SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI | FLAG_MSAA_4X_HINT);
-    InitWindow(window_width, window_height, "Chinese Checkers Replay");
+    InitWindow(window_width, window_height, "chinese checkers replay");
     SetTargetFPS(60);
 
     float elapsed_time = 0.0f;
@@ -97,11 +99,22 @@ int main() {
     int n_moves = move_list.size();
     bool done = false;
 
+    float time_between_updates = 1.0f;
+
     while (!WindowShouldClose() && !done) {
         float delta_time = GetFrameTime();
         elapsed_time += delta_time;
-        if (elapsed_time >= 1.0f && current_move < n_moves) {
-            int move_idx = to_update_state_move_index(move_list[current_move]);
+        if (elapsed_time >= time_between_updates && current_move < n_moves) {
+            auto move = move_list[current_move];
+            int move_idx = -1;
+            if (move.end_turn)
+            {
+                move_idx = N_MOVES - 1;
+            }
+            else
+            {
+                move_idx = move.piece_index * N_DIRECTIONS + move.direction;
+            }
             update_state(game_state, move_idx);
             current_move++;
             elapsed_time = 0.0f;
