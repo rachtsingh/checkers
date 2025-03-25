@@ -103,13 +103,13 @@ install-torch:
     @echo "Installing PyTorch dependencies..."
     @if [ "$(uname)" = "Darwin" ] && [ "$(uname -m)" = "arm64" ]; then \
         echo "Detected Apple Silicon, installing PyTorch with MPS support"; \
-        . .venv/bin/activate && uv pip install torch>=2.1.0; \
+        . .venv/bin/activate && uv pip install "torch>=2.1.0"; \
     elif [ "${USE_CUDA:-0}" = "1" ]; then \
         echo "Installing PyTorch with CUDA support"; \
-        . .venv/bin/activate && uv pip install torch>=2.1.0 --index-url https://download.pytorch.org/whl/cu118; \
+        . .venv/bin/activate && uv pip install "torch>=2.1.0" --index-url https://download.pytorch.org/whl/cu118; \
     else \
         echo "Installing PyTorch CPU version"; \
-        . .venv/bin/activate && uv pip install torch>=2.1.0 --index-url https://download.pytorch.org/whl/cpu; \
+        . .venv/bin/activate && uv pip install "torch>=2.1.0" --index-url https://download.pytorch.org/whl/cpu; \
     fi
     @echo "✓ PyTorch installation complete"
 
