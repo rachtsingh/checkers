@@ -137,5 +137,35 @@ public:
         *last_direction = -1;
         *current_player = (*current_player % 2) + 1;
         *turn_count += 1;
+        
+        // Check if a player has won
+        check_winner();
+    }
+    
+    inline void check_winner() {
+        bool player1_won = true;
+        bool player2_won = true;
+        
+        // Check if Player 1 has all pieces in Player 2's starting area (r >= 13)
+        for (int i = 0; i < N_PIECES_PER_PLAYER; i++) {
+            if (player_1_pieces[i].first < 13) {
+                player1_won = false;
+                break;
+            }
+        }
+        
+        // Check if Player 2 has all pieces in Player 1's starting area (r <= 3)
+        for (int i = 0; i < N_PIECES_PER_PLAYER; i++) {
+            if (player_2_pieces[i].first > 3) {
+                player2_won = false;
+                break;
+            }
+        }
+        
+        if (player1_won) {
+            *winner = 1;
+        } else if (player2_won) {
+            *winner = 2;
+        }
     }
 };
