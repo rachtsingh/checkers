@@ -115,7 +115,7 @@ install-torch:
 
 install-project:
     @echo "Installing project..."
-    @. .venv/bin/activate && uv pip install pybind11>=2.12 numpy<2.0.0
+    @. .venv/bin/activate && uv pip install "pybind11>=2.12" "numpy<2.0.0"
     @. .venv/bin/activate && uv pip install -e . --no-build-isolation
     @echo "✓ Project installation complete"
 # install: end
@@ -129,8 +129,8 @@ configure-cmake:
         mkdir -p build; \
     fi
     @. .venv/bin/activate && cd build && \
-        export CMAKE_PREFIX_PATH=$$(python -c "import torch; print(torch.utils.cmake_prefix_path)") && \
-        cmake -GNinja -DCMAKE_BUILD_TYPE=Release .. 
+        export CMAKE_PREFIX_PATH="$$(python -c 'import torch; print(torch.utils.cmake_prefix_path)')" && \
+        cmake -GNinja -DCMAKE_BUILD_TYPE=Release ..
     @echo "✓ CMake configuration complete"
 
 build-cpp:
@@ -144,7 +144,7 @@ build-debug:
         mkdir -p build; \
     fi
     @. .venv/bin/activate && cd build && \
-        export CMAKE_PREFIX_PATH=$$(python -c "import torch; print(torch.utils.cmake_prefix_path)") && \
+        export CMAKE_PREFIX_PATH="$$(python -c 'import torch; print(torch.utils.cmake_prefix_path)')" && \
         cmake -GNinja -DCMAKE_BUILD_TYPE=Debug .. && \
         cmake --build .
     @echo "✓ Debug build complete"
@@ -152,7 +152,7 @@ build-debug:
 
 generate: build 
     @echo "running 'generate'..."
-    @./build/generate > logs/game.log
+    @./build/generate run -n 25 -o logs/game.log
 
 render: build
     @echo "running 'render'..."
