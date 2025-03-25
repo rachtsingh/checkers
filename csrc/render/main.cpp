@@ -68,13 +68,6 @@ static void render_grid(int* grid) {
     }
 }
 
-
-static int to_update_state_move_index(const parsed_move_t& move) {
-    if (move.end_turn)
-        return N_MOVES - 1;
-    return move.piece_index * N_DIRECTIONS + move.direction;
-}
-
 int main() {
     std::vector<parsed_move_t> move_list;
     std::string line;

@@ -11,7 +11,7 @@
 #include <chrono>
 
 static void print_usage() {
-    std::cerr << "Usage: ./generate_exe run -n <batch_size> -o <log_file>\n";
+    std::cerr << "Usage: ./build/generate run -n <batch_size> -o <log_file>\n";
     std::exit(1);
 }
 
@@ -33,6 +33,7 @@ int32_t sample_allowed_action(const torch::Tensor& action_mask) {
 }
 
 int main(int argc, char* argv[]) {
+    // some stupid CLI parsing code
     if (argc < 3) print_usage();
     int n = -1;
     std::string log_file;
