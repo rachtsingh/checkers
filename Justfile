@@ -158,6 +158,10 @@ render: build
     @echo "running 'render'..."
     @./build/render < logs/game.log
 
+render-with-indices: build
+    @echo "running 'render' with grid indices..."
+    @./build/render -g < logs/game.log
+
 clean: clean-build clean-python
     @echo "✓ Project cleaned successfully"
 

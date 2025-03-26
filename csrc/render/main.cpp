@@ -53,7 +53,10 @@ static Vector2 get_center(int row, int col) {
     return {center_x, center_y};
 }
 
-static void render_grid(int* grid) {
+static void render_grid(GameState_t& game_state, bool show_grid_indices = false) {
+    int* grid = game_state.grid;
+    
+    // Draw the grid cells
     for (int r = 0; r < ROWS; r++) {
         for (int c = 0; c < COLS; c++) {
             if (!is_valid_cell(r, c)) continue;
@@ -64,11 +67,45 @@ static void render_grid(int* grid) {
                 DrawCircleV(center, CIRCLE_RADIUS, deep_sea_blue);
             else
                 DrawCircleV(center, CIRCLE_RADIUS, GRAY);
+                
+            // Show grid coordinates if requested
+            if (show_grid_indices) {
+                const char* text = TextFormat("%d,%d", r, c);
+                int text_width = MeasureText(text, 10);
+                DrawText(text, center.x - text_width/2, center.y + CIRCLE_RADIUS + 2, 10, DARKGRAY);
+            }
         }
+    }
+    
+    // Draw the indices for player 1 pieces
+    for (int i = 0; i < N_PIECES_PER_PLAYER; i++) {
+        point_t piece = game_state.player_1_pieces[i];
+        Vector2 center = get_center(piece.first, piece.second);
+        const char* text = TextFormat("%d", i);
+        int text_width = MeasureText(text, 12);
+        DrawText(text, center.x - text_width/2, center.y - 6, 12, BLACK);
+    }
+    
+    // Draw the indices for player 2 pieces
+    for (int i = 0; i < N_PIECES_PER_PLAYER; i++) {
+        point_t piece = game_state.player_2_pieces[i];
+        Vector2 center = get_center(piece.first, piece.second);
+        const char* text = TextFormat("%d", i);
+        int text_width = MeasureText(text, 12);
+        DrawText(text, center.x - text_width/2, center.y - 6, 12, WHITE);
     }
 }
 
-int main() {
+int main(int argc, char** argv) {
+    bool show_grid_indices = false;
+    
+    // Parse command line arguments
+    for (int i = 1; i < argc; i++) {
+        if (std::string(argv[i]) == "--show-grid-indices" || std::string(argv[i]) == "-g") {
+            show_grid_indices = true;
+        }
+    }
+    
     std::vector<parsed_move_t> move_list;
     std::string line;
     while (std::getline(std::cin, line)) {
@@ -117,7 +154,7 @@ int main() {
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
-        render_grid(game_state.grid);
+        render_grid(game_state, show_grid_indices);
         DrawText(TextFormat("Move %d", *game_state.turn_count), 20, 20, 20, DARKGRAY);
         if (done)
             DrawText("DONE. Press ESC to close.", 20, 50, 20, DARKGRAY);

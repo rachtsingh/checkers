@@ -25,6 +25,13 @@ EMPTY = 0
 PLAYER1 = 1
 PLAYER2 = 2
 
+# Rendering constants
+SCALE = 1.0
+HEX_RADIUS = 30.0 * SCALE
+CIRCLE_RADIUS = 12.0 * SCALE
+MARGIN_X = 50.0 * SCALE
+MARGIN_Y = 50.0 * SCALE
+
 
 @dataclass
 class Point:
@@ -181,7 +188,7 @@ def update_state(gs: GameState, piece_num: int, direction: int, end_turn: bool):
         gs.last_move = (cur_player, piece_num, piece, one_step)
 
 
-def draw_hex_grid(screen: pygame.Surface, gs: GameState, font: pygame.font.Font | None):
+def draw_hex_grid(screen: pygame.Surface, gs: GameState, font: pygame.font.Font | None, show_grid_indices: bool = False):
     screen.fill((255, 255, 255))
     for r in range(ROWS):
         for c in range(COLS):
@@ -201,6 +208,17 @@ def draw_hex_grid(screen: pygame.Surface, gs: GameState, font: pygame.font.Font 
             pygame.draw.circle(
                 screen, color, (int(center_x), int(center_y)), int(0.5 * HEX_RADIUS)
             )
+            
+            # Show grid coordinates if requested
+            if show_grid_indices:
+                small_font = pygame.font.SysFont(None, 16)
+                coords_label = small_font.render(f"{r},{c}", True, (100, 100, 100))
+                coords_rect = coords_label.get_rect(center=(
+                    int(center_x), 
+                    int(center_y + HEX_RADIUS * 0.7)
+                ))
+                screen.blit(coords_label, coords_rect)
+                
     pygame.display.flip()
     if gs.last_skipped_piece != -1 and gs.last_move is not None:
         fx, fy = MARGIN_X, MARGIN_Y  # simplified placeholder for first piece center
@@ -213,13 +231,25 @@ def draw_hex_grid(screen: pygame.Surface, gs: GameState, font: pygame.font.Font 
         )
     if font is not None:
         for idx, point in enumerate(gs.player_1_pieces):
-            cx, cy = MARGIN_X, MARGIN_Y  # simplified; compute actual center if needed
+            cx = (
+                MARGIN_X
+                + (math.sqrt(3.0) * HEX_RADIUS * 0.5 if point.x % 2 == 1 else 0)
+                + point.y * (math.sqrt(3.0) * HEX_RADIUS)
+            )
+            cy = MARGIN_Y + point.x * (1.5 * HEX_RADIUS)
             label = font.render(str(idx), True, (0, 0, 0))
-            screen.blit(label, (cx, cy))
+            label_rect = label.get_rect(center=(int(cx), int(cy)))
+            screen.blit(label, label_rect)
         for idx, point in enumerate(gs.player_2_pieces):
-            cx, cy = MARGIN_X, MARGIN_Y
-            label = font.render(str(idx), True, (0, 0, 0))
-            screen.blit(label, (cx, cy))
+            cx = (
+                MARGIN_X
+                + (math.sqrt(3.0) * HEX_RADIUS * 0.5 if point.x % 2 == 1 else 0)
+                + point.y * (math.sqrt(3.0) * HEX_RADIUS)
+            )
+            cy = MARGIN_Y + point.x * (1.5 * HEX_RADIUS)
+            label = font.render(str(idx), True, (255, 255, 255))
+            label_rect = label.get_rect(center=(int(cx), int(cy)))
+            screen.blit(label, label_rect)
     pygame.display.flip()
 
 
@@ -242,7 +272,8 @@ def draw_hex_grid(screen: pygame.Surface, gs: GameState, font: pygame.font.Font 
     help="Output grid file.",
 )
 @click.option("--render", is_flag=True, help="Visualize moves with PyGame.")
-def simulate(log_file: pathlib.Path, out_file: pathlib.Path, render: bool):
+@click.option("--show-grid-indices", "-g", is_flag=True, help="Show grid coordinates in visualization.")
+def simulate(log_file: pathlib.Path, out_file: pathlib.Path, render: bool, show_grid_indices: bool = False):
     lines = log_file.read_text(encoding="utf-8").splitlines()
     gs = initialize_state()
     screen = None
@@ -272,7 +303,7 @@ def simulate(log_file: pathlib.Path, out_file: pathlib.Path, render: bool):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     sys.exit(0)
-            draw_hex_grid(screen, gs, font)
+            draw_hex_grid(screen, gs, font, show_grid_indices)
             pygame.time.wait(1000)
     if render:
         pygame.time.wait(2000)
