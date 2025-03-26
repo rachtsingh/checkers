@@ -1,3 +1,6 @@
+#include "../shared/board.h"
+#include "../shared/chinese_checkers.h"
+#include "../shared/constants.h"
 #include "raylib.h"
 #include <cmath>
 #include <cstdlib>
@@ -7,15 +10,13 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include "../shared/board.h"
-#include "../shared/chinese_checkers.h"
-#include "../shared/constants.h"
 
 static Color forest_green = {34, 139, 34, 255};
 static Color deep_sea_blue = {0, 105, 148, 255};
 static Color move_arrow_color = {255, 69, 0, 200}; // Orange-red with some transparency
 
-static const int window_width = static_cast<int>(2 * MARGIN_X + (COLS - 1) * (sqrtf(3.0f) * HEX_RADIUS) + 0.5f * (sqrtf(3.0f) * HEX_RADIUS));
+static const int window_width =
+    static_cast<int>(2 * MARGIN_X + (COLS - 1) * (sqrtf(3.0f) * HEX_RADIUS) + 0.5f * (sqrtf(3.0f) * HEX_RADIUS));
 static const int window_height = static_cast<int>(2 * MARGIN_Y + (ROWS - 1) * (1.5f * HEX_RADIUS));
 
 struct parsed_move_t {
@@ -23,19 +24,23 @@ struct parsed_move_t {
     bool end_turn;
     int piece_index;
     int direction;
-    point_t from_pos;   // To track source position
-    point_t to_pos;     // To track destination position
+    point_t from_pos;
+    point_t to_pos;
 };
 
 static bool parse_move_line(const std::string& line, parsed_move_t& out_move) {
     std::istringstream iss(line);
     std::vector<std::string> tokens;
     std::string t;
-    while (iss >> t) { tokens.push_back(t); }
-    if (tokens.size() < 4) return false;
-    if (tokens[0] != "PLAYER" || tokens[2] != "MOVE:") return false;
+    while (iss >> t) {
+        tokens.push_back(t);
+    }
+    if (tokens.size() < 4)
+        return false;
+    if (tokens[0] != "PLAYER" || tokens[2] != "MOVE:")
+        return false;
     out_move.player = std::stoi(tokens[1]);
-    
+
     // Check for "END TURN" format (tokens[3] == "END" && tokens[4] == "TURN")
     if (tokens[3] == "END" && tokens.size() >= 5 && tokens[4] == "TURN") {
         out_move.end_turn = true;
@@ -46,8 +51,9 @@ static bool parse_move_line(const std::string& line, parsed_move_t& out_move) {
         out_move.to_pos = {-1, -1};
         return true;
     }
-    
-    if (tokens.size() < 5) return false;
+
+    if (tokens.size() < 5)
+        return false;
     out_move.end_turn = false;
     out_move.piece_index = std::stoi(tokens[3]);
     out_move.direction = std::stoi(tokens[4]);
@@ -57,7 +63,6 @@ static bool parse_move_line(const std::string& line, parsed_move_t& out_move) {
     return true;
 }
 
-
 static Vector2 get_center(int row, int col) {
     float offset_x = (row % 2 == 1) ? (sqrtf(3.0f) * HEX_RADIUS * 0.5f) : 0.0f;
     float center_x = MARGIN_X + offset_x + col * (sqrtf(3.0f) * HEX_RADIUS);
@@ -65,38 +70,14 @@ static Vector2 get_center(int row, int col) {
     return {center_x, center_y};
 }
 
-// Draw an arrow from start to end
-static void draw_arrow(Vector2 start, Vector2 end, Color color, float thickness = 2.0f) {
-    DrawLineEx(start, end, thickness, color);
-    
-    auto dir = Vector2{end.x - start.x, end.y - start.y};
-    float len = sqrtf(dir.x * dir.x + dir.y * dir.y);
-    
-    dir.x /= len;
-    dir.y /= len;
-    
-    auto perp = Vector2{-dir.y, dir.x};
-    float arrowSize = 10.0f;
-    
-    auto p1 = Vector2{
-        end.x - dir.x * arrowSize + perp.x * arrowSize * 0.5f,
-        end.y - dir.y * arrowSize + perp.y * arrowSize * 0.5f
-    };
-    auto p2 = Vector2{
-        end.x - dir.x * arrowSize - perp.x * arrowSize * 0.5f,
-        end.y - dir.y * arrowSize - perp.y * arrowSize * 0.5f
-    };
-    
-    DrawTriangle(end, p1, p2, color);
-}
-
-static void render_grid(GameState_t& game_state, bool show_grid_indices = false, 
-                   const parsed_move_t* last_move = nullptr) {
+static void render_grid(GameState_t& game_state, bool show_grid_indices = false,
+                        const parsed_move_t* last_move = nullptr) {
     int* grid = game_state.grid;
-    
+
     for (int r = 0; r < ROWS; r++) {
         for (int c = 0; c < COLS; c++) {
-            if (!is_valid_cell(r, c)) continue;
+            if (!is_valid_cell(r, c))
+                continue;
             auto center = get_center(r, c);
             if (grid[r * COLS + c] == 1)
                 DrawCircleV(center, CIRCLE_RADIUS, forest_green);
@@ -104,92 +85,91 @@ static void render_grid(GameState_t& game_state, bool show_grid_indices = false,
                 DrawCircleV(center, CIRCLE_RADIUS, deep_sea_blue);
             else
                 DrawCircleV(center, CIRCLE_RADIUS, GRAY);
-                
+
             if (show_grid_indices) {
                 auto text = TextFormat("%d,%d", r, c);
                 auto text_width = MeasureText(text, 10);
-                DrawText(text, center.x - text_width/2, center.y + CIRCLE_RADIUS + 2, 10, DARKGRAY);
+                DrawText(text, center.x - text_width / 2, center.y + CIRCLE_RADIUS + 2, 10, DARKGRAY);
             }
         }
     }
-    
+
     if (last_move && last_move->from_pos.first != -1 && last_move->to_pos.first != -1) {
         auto start = get_center(last_move->from_pos.first, last_move->from_pos.second);
         auto end = get_center(last_move->to_pos.first, last_move->to_pos.second);
-        draw_arrow(start, end, move_arrow_color, 3.0f);
+        DrawLineEx(start, end, 3.0f, move_arrow_color);
     }
-    
+
     for (int i = 0; i < N_PIECES_PER_PLAYER; i++) {
         auto piece = game_state.player_1_pieces[i];
         auto center = get_center(piece.first, piece.second);
-        auto text = TextFormat("%d", i);
-        auto text_width = MeasureText(text, 12);
-        DrawText(text, center.x - text_width/2, center.y - 6, 12, BLACK);
+        auto text_width = (i == 1) ? 2 : 6;
+        DrawText(TextFormat("%d", i), center.x - text_width / 2, center.y - 6, 12, BLACK);
     }
-    
+
     for (int i = 0; i < N_PIECES_PER_PLAYER; i++) {
         auto piece = game_state.player_2_pieces[i];
         auto center = get_center(piece.first, piece.second);
-        auto text = TextFormat("%d", i);
-        auto text_width = MeasureText(text, 12);
-        DrawText(text, center.x - text_width/2, center.y - 6, 12, WHITE);
+        auto text_width = (i == 1) ? 2 : 6;
+        DrawText(TextFormat("%d", i), center.x - text_width / 2, center.y - 6, 12, WHITE);
     }
 }
 
 int main(int argc, char** argv) {
     bool show_grid_indices = false;
-    
+
     // Parse command line arguments
     for (int i = 1; i < argc; i++) {
         if (std::string(argv[i]) == "--show-grid-indices" || std::string(argv[i]) == "-g") {
             show_grid_indices = true;
         }
     }
-    
+
     std::vector<parsed_move_t> raw_move_list;
     std::string line;
     while (std::getline(std::cin, line)) {
-        if (line.empty()) continue;
+        if (line.empty())
+            continue;
         parsed_move_t parsed;
         if (parse_move_line(line, parsed))
             raw_move_list.push_back(parsed);
         else
             std::cerr << "ignoring invalid line: " << line << "\n";
     }
-    
+
     // Process the raw moves to group submoves and set from/to positions
     std::vector<parsed_move_t> move_list;
-    
+
     auto states_tensor = initialize_state_batched(1);
     GameState_t game_state(states_tensor[0].data_ptr<int>());
-    
+
     for (size_t i = 0; i < raw_move_list.size(); i++) {
         auto move = raw_move_list[i];
-        
+
         // Handle END_TURN moves properly
         if (move.end_turn) {
             // Add the END_TURN move explicitly to the move list
             // so the update_state will properly handle the player change
             move_list.push_back(move);
-            
+
             // Update the game state with the END_TURN move
             update_state(game_state, N_MOVES - 1);
             continue;
         }
-        
+
         // Get the current piece position before the move
         auto player = move.player;
         auto piece_num = move.piece_index;
         auto piece = (player == 1) ? game_state.player_1_pieces[piece_num] : game_state.player_2_pieces[piece_num];
-        
+
         // Store original position
         move.from_pos = piece;
-        
+
         // Calculate destination based on move direction
         neighbors_t neighbors;
         get_neighbors(piece, neighbors, true);
         auto one_step = neighbors[move.direction];
-        
+
         // Determine if it's a one-step or a skip move
         if (!game_state.occupied(one_step)) {
             // One-step move
@@ -200,10 +180,10 @@ int main(int argc, char** argv) {
             point_t two_step = {piece.first + offset[0], piece.second + offset[1]};
             move.to_pos = two_step;
         }
-        
+
         // Add to processed move list
         move_list.push_back(move);
-        
+
         // Update the game state to reflect this move
         int move_idx = -1;
         if (move.end_turn) {
@@ -213,7 +193,7 @@ int main(int argc, char** argv) {
         }
         update_state(game_state, move_idx);
     }
-    
+
     // Reset the game state for the actual rendering
     states_tensor = initialize_state_batched(1);
     game_state = GameState_t(states_tensor[0].data_ptr<int>());
@@ -229,9 +209,9 @@ int main(int argc, char** argv) {
     parsed_move_t* last_move = nullptr;
 
     // Different timing for different types of moves
-    float regular_move_time = 1.0f;   // Regular moves
-    float skip_move_time = 0.5f;      // Faster for multi-hop submoves
-    float end_turn_time = 0.3f;       // Even faster for END TURN moves
+    float regular_move_time = 1.0f; // Regular moves
+    float skip_move_time = 0.5f;    // Faster for multi-hop submoves
+    float end_turn_time = 0.3f;     // Even faster for END TURN moves
     float time_between_updates = regular_move_time;
 
     while (!WindowShouldClose() && !done) {
@@ -246,13 +226,12 @@ int main(int argc, char** argv) {
                 time_between_updates = regular_move_time;
             } else {
                 move_idx = move.piece_index * N_DIRECTIONS + move.direction;
-                
+
                 // Determine if this is part of a skip sequence
                 bool is_skip = false;
                 if (current_move < n_moves - 1) {
                     // Look ahead to see if next move is by same player (skip sequence)
-                    if (move_list[current_move + 1].player == move.player && 
-                        !move_list[current_move + 1].end_turn) {
+                    if (move_list[current_move + 1].player == move.player && !move_list[current_move + 1].end_turn) {
                         is_skip = true;
                         // Set faster timing for the next move in this skip sequence
                         time_between_updates = skip_move_time;
