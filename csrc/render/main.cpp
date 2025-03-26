@@ -166,8 +166,7 @@ int main(int argc, char** argv) {
         move.from_pos = piece;
 
         // Calculate destination based on move direction
-        neighbors_t neighbors;
-        get_neighbors(piece, neighbors, true);
+        auto neighbors = get_neighbors(piece, true);
         auto one_step = neighbors[move.direction];
 
         // Determine if it's a one-step or a skip move

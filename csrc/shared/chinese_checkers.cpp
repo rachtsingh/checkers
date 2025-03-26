@@ -56,9 +56,7 @@ void set_action_mask(GameState_t game_state, int* dest) {
         }
 
         auto piece = (player == 1) ? game_state.player_1_pieces[i] : game_state.player_2_pieces[i];
-        neighbors_t neighbors;
-        auto count = get_neighbors(piece, neighbors, true);
-        assert(count == N_DIRECTIONS);
+        auto neighbors = get_neighbors(piece, true);
         for (int j = 0; j < N_DIRECTIONS; j++) {
             auto dest_idx = i * N_DIRECTIONS + j;
             auto one_step = neighbors[j];
@@ -127,8 +125,7 @@ void update_state(GameState_t game_state, size_t move) {
     // now we need to figure out if we're moving 1 or 2 steps (we assume the move
     // is valid)
     auto piece = (current_player == 1) ? game_state.player_1_pieces[piece_num] : game_state.player_2_pieces[piece_num];
-    neighbors_t neighbors;
-    auto count = get_neighbors(piece, neighbors, true);
+    auto neighbors = get_neighbors(piece, true);
     auto one_step = neighbors[direction];
     auto offset = double_step_neighbors[direction];
     auto two_step = point_t{piece.first + offset[0], piece.second + offset[1]};

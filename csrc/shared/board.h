@@ -62,33 +62,34 @@ inline bool is_valid_cell(point_t p) {
     return is_valid_cell(p.first, p.second);
 }
 
-static std::vector<point_t> get_neighbors(point_t p, bool include_invalid = false) {
-    // when include_invalid == true, we will always return 6 elements
-    std::vector<point_t> result;
-    const auto neighbor_delta = (p.first % 2 == 0) ? even_row_neighbors : odd_row_neighbors;
-    for (int i = 0; i < 6; i++) {
-        point_t np = {p.first + neighbor_delta[i][0], p.second + neighbor_delta[i][1]};
-        if (include_invalid || (is_valid_cell(np))) {
-            result.push_back(np);
-        }
-    }
-    if (include_invalid) {
-        assert(result.size() == 6);
-    }
-    return result;
-}
+// This function was removed and replaced with a more efficient array-based version below
 
-inline char get_neighbors(point_t p, neighbors_t& result, bool include_invalid = false) {
-    // when include_invalid == true, we will always return 6 elements
-    const auto neighbor_delta = (p.first % 2 == 0) ? even_row_neighbors : odd_row_neighbors;
-    int count = 0;
-    for (int i = 0; i < 6; i++) {
-        point_t np = {p.first + neighbor_delta[i][0], p.second + neighbor_delta[i][1]};
-        if (include_invalid || (is_valid_cell(np))) {
-            result[count++] = np;
+// Return all neighbors for a given point using modern C++ return value optimization
+inline neighbors_t get_neighbors(point_t p, bool include_invalid = false) {
+    neighbors_t result;
+    const auto& neighbor_delta = (p.first % 2 == 0) ? even_row_neighbors : odd_row_neighbors;
+    
+    if (include_invalid) {
+        // When include_invalid is true, we always return all 6 directions
+        for (int i = 0; i < N_DIRECTIONS; i++) {
+            result[i] = {p.first + neighbor_delta[i][0], p.second + neighbor_delta[i][1]};
+        }
+    } else {
+        // When filtering invalid cells, we need to ensure valid cells are placed contiguously
+        int count = 0;
+        for (int i = 0; i < N_DIRECTIONS; i++) {
+            point_t np = {p.first + neighbor_delta[i][0], p.second + neighbor_delta[i][1]};
+            if (is_valid_cell(np)) {
+                result[count++] = np;
+            }
+        }
+        // Fill remaining slots with invalid points if we didn't get N_DIRECTIONS valid neighbors
+        while (count < N_DIRECTIONS) {
+            result[count++] = {-1, -1};
         }
     }
-    return count;
+    
+    return result; // Modern C++ will use return value optimization here
 }
 
 class GameState_t {

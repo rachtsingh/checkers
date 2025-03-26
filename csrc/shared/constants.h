@@ -2,6 +2,7 @@
 
 // #include "raylib.h"
 
+#include <array>
 #include <functional> // for std::hash<int>
 #include <unordered_set>
 #include <utility> // for std::pair
@@ -39,7 +40,7 @@ static const float MARGIN_Y = 50.0f * SCALE;
 
 static const bool SHOW_COORDS = true;
 
-typedef point_t neighbors_t[N_DIRECTIONS];
+typedef std::array<point_t, N_DIRECTIONS> neighbors_t;
 // formatting methods to allow us to do std::cout << point_t
 // inline std::ostream& operator<<(std::ostream& os, const point_t& p) {
 //     os << "(" << p.first << ", " << p.second << ")";
