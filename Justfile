@@ -175,7 +175,7 @@ clean-build:
 clean-python:
     @echo "Cleaning Python artifacts..."
     @if [ -d ".venv" ]; then \
-        . .venv/bin/activate && uv pip uninstall -y chinese_checkers_ext || true; \
+        . .venv/bin/activate && uv pip uninstall chinese_checkers_ext || true; \
     fi
     @rm -rf *.egg-info
     @rm -rf **/*.egg-info

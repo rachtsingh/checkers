@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.10)
 project(ChineseCheckersBinaries)
 
+# Set Ninja as the preferred generator
+if(NOT DEFINED CMAKE_GENERATOR)
+  set(CMAKE_GENERATOR "Ninja")
+endif()
+
 # Optionally set Torch's CMake prefix if not provided externally.
 if(NOT DEFINED CMAKE_PREFIX_PATH)
   # Adjust this path to your virtual environment's Torch share directory.
