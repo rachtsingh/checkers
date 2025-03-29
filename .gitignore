@@ -10,3 +10,4 @@ build_render
 c_cpp_properties.json
 *.so
 **/*.so
+uv.lock

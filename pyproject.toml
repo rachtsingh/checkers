@@ -1,0 +1,8 @@
+[tool.uv.workspace]
+members = ["env", "pufferlib"]
+
+[dependency-groups]
+dev = [
+    "ipython>=8.18.1",
+    "pyflyby>=1.9.7",
+]
