@@ -17,16 +17,16 @@ find_package(Torch REQUIRED)
 # Add raylib as a subdirectory so its target is built
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/raylib raylib-build)
 
-include_directories(${CMAKE_SOURCE_DIR}/csrc/shared)
+include_directories(${CMAKE_SOURCE_DIR}/env/csrc/shared)
 
 # Render executable (links against raylib)
 add_executable(render
-  ${CMAKE_SOURCE_DIR}/csrc/render/main.cpp
-  ${CMAKE_SOURCE_DIR}/csrc/shared/chinese_checkers.cpp
+  ${CMAKE_SOURCE_DIR}/env/csrc/render/main.cpp
+  ${CMAKE_SOURCE_DIR}/env/csrc/shared/chinese_checkers.cpp
 )
 target_include_directories(render PUBLIC
-  ${CMAKE_SOURCE_DIR}/csrc/render
-  ${CMAKE_SOURCE_DIR}/csrc/shared
+  ${CMAKE_SOURCE_DIR}/env/csrc/render
+  ${CMAKE_SOURCE_DIR}/env/csrc/shared
   ${CMAKE_SOURCE_DIR}/external/raylib/src  # Raylib headers
   ${TORCH_INCLUDE_DIRS}
 )
@@ -35,11 +35,11 @@ set_property(TARGET render PROPERTY CXX_STANDARD 20)
 
 # Generate executable (doesn't require raylib)
 add_executable(generate
-  ${CMAKE_SOURCE_DIR}/csrc/generate/main.cpp
-  ${CMAKE_SOURCE_DIR}/csrc/shared/chinese_checkers.cpp
+  ${CMAKE_SOURCE_DIR}/env/csrc/generate/main.cpp
+  ${CMAKE_SOURCE_DIR}/env/csrc/shared/chinese_checkers.cpp
 )
 target_include_directories(generate PUBLIC
-  ${CMAKE_SOURCE_DIR}/csrc/shared
+  ${CMAKE_SOURCE_DIR}/env/csrc/shared
   ${TORCH_INCLUDE_DIRS}
 )
 target_link_libraries(generate "${TORCH_LIBRARIES}")

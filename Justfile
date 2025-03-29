@@ -72,7 +72,7 @@ setup-uv:
             exit 1; \
         fi; \
     fi
-    
+
     @echo "Setting up Python with uv..."
     @read -p "Would you like to install Python 3.11 using uv? [y/N] " resp; \
     if [ "$$resp" = "y" ] || [ "$$resp" = "Y" ]; then \
@@ -84,58 +84,29 @@ setup-uv:
     fi
 # setup: end
 
-install: setup-python install-torch install-project
-    @echo "✓ Installation completed successfully"
-
-# install: begin
-setup-python:
-    @echo "Setting up Python virtual environment..."
-    @if [ ! -d ".venv" ]; then \
-        echo "Creating virtual environment with uv..."; \
-        uv venv --python 3.11; \
-        . .venv/bin/activate && uv pip install pip setuptools wheel; \
-        echo "✓ Python virtual environment created"; \
-    else \
-        echo "✓ Python virtual environment already exists"; \
-    fi
-
-install-torch:
-    @echo "Installing PyTorch dependencies..."
-    @if [ "$(uname)" = "Darwin" ] && [ "$(uname -m)" = "arm64" ]; then \
-        echo "Detected Apple Silicon, installing PyTorch with MPS support"; \
-        . .venv/bin/activate && uv pip install "torch>=2.1.0"; \
-    elif [ "${USE_CUDA:-0}" = "1" ]; then \
-        echo "Installing PyTorch with CUDA support"; \
-        . .venv/bin/activate && uv pip install "torch>=2.1.0" --index-url https://download.pytorch.org/whl/cu118; \
-    else \
-        echo "Installing PyTorch CPU version"; \
-        . .venv/bin/activate && uv pip install "torch>=2.1.0" --index-url https://download.pytorch.org/whl/cpu; \
-    fi
-    @echo "✓ PyTorch installation complete"
-
-install-project:
+install:
     @echo "Installing project..."
-    @. .venv/bin/activate && uv pip install "pybind11>=2.12" "numpy<2.0.0"
-    @. .venv/bin/activate && uv pip install -e . --no-build-isolation
+    @uv sync
     @echo "✓ Project installation complete"
-# install: end
 
 build: configure-cmake build-cpp
 
 # build: begin
+TORCH_CMAKE_PATH := `uv run python -c "import torch; print(torch.utils.cmake_prefix_path)"`
+
 configure-cmake:
     @echo "Configuring CMake project..."
     @if [ ! -d "build" ]; then \
         mkdir -p build; \
     fi
-    @. .venv/bin/activate && cd build && \
-        export CMAKE_PREFIX_PATH="$$(python -c 'import torch; print(torch.utils.cmake_prefix_path)')" && \
-        cmake -GNinja -DCMAKE_BUILD_TYPE=Release ..
+    @echo "Checking Python and PyTorch configuration..."
+    @echo "TORCH_CMAKE_PATH={{TORCH_CMAKE_PATH}}"
+    @cd build && cmake -GNinja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH={{TORCH_CMAKE_PATH}} ..
     @echo "✓ CMake configuration complete"
 
 build-cpp:
     @echo "Building C++ executables..."
-    @. .venv/bin/activate && cmake --build build
+    @cmake --build build
     @echo "✓ Build complete"
 
 build-debug:
@@ -143,14 +114,12 @@ build-debug:
     @if [ ! -d "build" ]; then \
         mkdir -p build; \
     fi
-    @. .venv/bin/activate && cd build && \
-        export CMAKE_PREFIX_PATH="$$(python -c 'import torch; print(torch.utils.cmake_prefix_path)')" && \
-        cmake -GNinja -DCMAKE_BUILD_TYPE=Debug .. && \
-        cmake --build .
+    @eval "$$(. .venv/bin/activate && echo 'TORCH_CMAKE_PATH=$$(python -c "import torch; print(torch.utils.cmake_prefix_path)")')"
+    @cd build && cmake -GNinja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PREFIX_PATH=$$TORCH_CMAKE_PATH .. && cmake --build .
     @echo "✓ Debug build complete"
 # build: end
 
-generate: build 
+generate: build
     @echo "running 'generate'..."
     @./build/generate run -n 25 -o logs/game.log
 
@@ -177,9 +146,9 @@ clean-python:
     @if [ -d ".venv" ]; then \
         . .venv/bin/activate && uv pip uninstall chinese_checkers_ext || true; \
     fi
-    @rm -rf *.egg-info
-    @rm -rf **/*.egg-info
-    @find . -type d -name __pycache__ -exec rm -rf {} +
+    @rm -rf env/*.egg-info
+    @rm -rf env/**/*.egg-info
+    @find env -type d -name __pycache__ -exec rm -rf {} +
     @uv cache clean chinese_checkers_ext
     @echo "✓ Python artifacts cleaned"
 # clean: end

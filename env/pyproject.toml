@@ -1,0 +1,43 @@
+[build-system]
+requires = [
+  "setuptools",
+  "wheel",
+  "torch<2.3.0",
+  "numpy",
+  "pybind11>=2.12"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chinese_checkers_ext"
+version = "0.1.0"
+description = "Chinese Checkers PyTorch extension"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+  # macOS Intel (x86_64)
+  "torch<2.3.0; sys_platform == 'darwin' and platform_machine == 'x86_64'", 
+  # macOS Apple Silicon (arm64)
+  "torch>=2.3.0; sys_platform == 'darwin' and platform_machine == 'arm64'", 
+  # Linux (all architectures)
+  "torch>=2.3.0; sys_platform == 'linux'",
+  "setuptools>=61.0.0",
+  "numpy<2.0.0",
+  "pybind11>=2.12",
+  "click",
+  "rich",
+  "parse",
+  "ipdb",
+  "pygame"
+]
+
+# PyTorch index configuration for Linux only
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu121"
+
+[tool.uv.sources]
+torch = [
+  # No specific source for macOS (uses PyPI by default)
+  { index = "pytorch-cuda", marker = "sys_platform == 'linux'" }
+]
